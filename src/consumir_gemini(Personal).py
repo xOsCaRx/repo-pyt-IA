@@ -11,7 +11,7 @@ def build_request_and_call(question):
     model = "gemini-flash-latest"
     body = { "contents": [{ "parts": [{ "text": question }] }] }
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
-    return  requests.request("POST", url, json=body)
+    return  requests.request("POST", url, json=body) #Puedo devolver solo un request y no ejecutar el post?
 
 #realizo la llamada a la API
 def call_api(question):
