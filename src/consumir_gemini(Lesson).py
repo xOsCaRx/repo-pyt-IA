@@ -25,6 +25,7 @@ def enviar_peticion(url, body):
 def extraer_texto(datos):
     return datos["candidates"][0]["content"]["parts"][0]["text"]
 
+#Obtener respuesta
 def obtener_respuesta(pregunta):
     url, body = armar_peticion(pregunta)
     datos = enviar_peticion(url, body)
