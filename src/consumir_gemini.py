@@ -2,22 +2,33 @@ import os
 import requests
 from dotenv import load_dotenv
 
+#----------------------------------------------------------------------------------------------------
 #Función que permite cargar secretos y configuraciones desde .env
+#----------------------------------------------------------------------------------------------------
 load_dotenv()
 
+#----------------------------------------------------------------------------------------------------
 #Constantes
+#Fecha de actualización: 2026-10-19
+#----------------------------------------------------------------------------------------------------
+GEMINI_URL_BASE = f"https://generativelanguage.googleapis.com/v1beta/models/"
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 GEMINI_MODEL = "gemini-flash-latest"
-URL_BASE = f"https://generativelanguage.googleapis.com/v1beta/models/"
-
+GEMINI_PRECIO_ENTRADA = 0.00000075
+GEMINI_PRECIO_SALIDA = 0.00000375
+VALOR_DOLAR_CHILE = 970
+#----------------------------------------------------------------------------------------------------
 #Crear solicitud
+#----------------------------------------------------------------------------------------------------
 def armar_peticion(pregunta):
     if not pregunta: raise ValueError("La pregunta no puede estar vacía.")
-    url = f"{URL_BASE}{GEMINI_MODEL}:generateContent?key={GEMINI_API_KEY}"
+    url = f"{GEMINI_URL_BASE}{GEMINI_MODEL}:generateContent?key={GEMINI_API_KEY}"
     body = { "contents": [{ "parts": [{ "text": pregunta }] }] }
     return url, body
 
+#----------------------------------------------------------------------------------------------------
 #Enviar petición
+#----------------------------------------------------------------------------------------------------
 def enviar_peticion(url, body):
     try:
         response = requests.post(url, json=body)
@@ -30,23 +41,54 @@ def enviar_peticion(url, body):
         raise RuntimeError(f"Error en la solicitud: {response.status_code} - {response.text}")
     try:
         return response.json()
-    except requests.exceptions.JsonDecodeError:
-        raise RuntimeError("La respuesta del serivio no llegó en el formato esperado.")
+    except requests.exceptions.JSONDecodeError:
+        raise RuntimeError("La respuesta del servicio no llegó en el formato esperado.")
 
-#Extraer respuesta
+#----------------------------------------------------------------------------------------------------
+#Extraer respuesta: Permite extraer el texto de la respuesta de la API y calcular el costo de la misma.
+#Última modificación: 2026-10-19
+#----------------------------------------------------------------------------------------------------
 def extraer_texto(datos):
     try:
-        return datos["candidates"][0]["content"]["parts"][0]["text"]
-    except (KeyError, IndexError):
+        costo = calcular_costo(datos, precio_entrada=GEMINI_PRECIO_ENTRADA, precio_salida=GEMINI_PRECIO_SALIDA)
+        return datos["candidates"][0]["content"]["parts"][0]["text"], costo
+    except (KeyError, IndexError, TypeError):
         raise RuntimeError("Error al extraer el texto de la respuesta.")    
 
-#Obtener respuesta
+#----------------------------------------------------------------------------------------------------
+#Obtener respuesta: Permite obtener la respuesta de la API 
+#Última modificación: 2026-10-19
+#----------------------------------------------------------------------------------------------------
 def obtener_respuesta(pregunta):
     url, body = armar_peticion(pregunta)
     datos = enviar_peticion(url, body)
     return extraer_texto(datos)
 
+#----------------------------------------------------------------------------------------------------
+# Calcular costo (tokens): Permite obtener el costo de la respuesta en función de los tokens utilizados en la entrada y salida.
+# Creación: 2026-10-19
+# Última modificación: 2026-10-19
+#----------------------------------------------------------------------------------------------------
+def calcular_costo(datos:dict, precio_entrada: float, precio_salida: float):
+    try:
+        usage = datos["usageMetadata"] # Sección JSON de la respuesta de la API
+        prompt_token = int(usage.get("promptTokenCount") or 0) # Número de tokens utilizados en la entrada
+        candidates_token = int(usage.get("candidatesTokenCount") or 0) # Número de tokens utilizados en la salida
+        thought_token = int(usage.get("thoughtsTokenCount") or 0) # Número de tokens utilizados en el razonamiento
+        costo_entrada = prompt_token * precio_entrada
+        costo_salida = (candidates_token + thought_token) * precio_salida
+        return costo_entrada + costo_salida
+    except KeyError as error:
+        raise ValueError(f"Falta un dato para poder calcular el costo: {error}") from error
+    except (TypeError, ValueError) as error:
+        raise ValueError("Los datos de tokens tienen un formato inválido.") from error
+
+#----------------------------------------------------------------------------------------------------
+#Main
+#----------------------------------------------------------------------------------------------------
 try:
-    print(obtener_respuesta(input("Ingrese su pregunta: ")))     
+    respuesta, costo = obtener_respuesta(input("Ingrese su pregunta: "))
+    print(f"Respuesta: {respuesta}")
+    print(f"Costo estimado de la respuesta: ${costo:.6f} USD / ${costo * VALOR_DOLAR_CHILE:.2f} CLP")
 except (ValueError, RuntimeError) as e:
     print(f"No se pudo completar la operación: {e}")
