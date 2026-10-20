@@ -3,13 +3,13 @@ import requests
 from dotenv import load_dotenv
 
 #----------------------------------------------------------------------------------------------------
-#Función que permite cargar secretos y configuraciones desde .env
+# Función que permite cargar secretos y configuraciones desde .env
 #----------------------------------------------------------------------------------------------------
 load_dotenv()
 
 #----------------------------------------------------------------------------------------------------
-#Constantes
-#Fecha de actualización: 2026-10-19
+# Constantes
+# Fecha de actualización: 2026-10-19
 #----------------------------------------------------------------------------------------------------
 GEMINI_URL_BASE = f"https://generativelanguage.googleapis.com/v1beta/models/"
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
@@ -18,7 +18,7 @@ GEMINI_PRECIO_ENTRADA = 0.00000075
 GEMINI_PRECIO_SALIDA = 0.00000375
 VALOR_DOLAR_CHILE = 970
 #----------------------------------------------------------------------------------------------------
-#Crear solicitud
+# Crear solicitud
 #----------------------------------------------------------------------------------------------------
 def armar_peticion(pregunta):
     if not pregunta: raise ValueError("La pregunta no puede estar vacía.")
@@ -27,7 +27,7 @@ def armar_peticion(pregunta):
     return url, body
 
 #----------------------------------------------------------------------------------------------------
-#Enviar petición
+# Enviar petición
 #----------------------------------------------------------------------------------------------------
 def enviar_peticion(url, body):
     try:
@@ -45,8 +45,8 @@ def enviar_peticion(url, body):
         raise RuntimeError("La respuesta del servicio no llegó en el formato esperado.")
 
 #----------------------------------------------------------------------------------------------------
-#Extraer respuesta: Permite extraer el texto de la respuesta de la API y calcular el costo de la misma.
-#Última modificación: 2026-10-19
+# Extraer respuesta: Permite extraer el texto de la respuesta de la API y calcular el costo de la misma.
+# Última modificación: 2026-10-19
 #----------------------------------------------------------------------------------------------------
 def extraer_texto(datos):
     try:
@@ -56,8 +56,8 @@ def extraer_texto(datos):
         raise RuntimeError("Error al extraer el texto de la respuesta.")    
 
 #----------------------------------------------------------------------------------------------------
-#Obtener respuesta: Permite obtener la respuesta de la API 
-#Última modificación: 2026-10-19
+# Obtener respuesta: Permite obtener la respuesta de la API 
+# Última modificación: 2026-10-19
 #----------------------------------------------------------------------------------------------------
 def obtener_respuesta(pregunta):
     url, body = armar_peticion(pregunta)
@@ -72,9 +72,9 @@ def obtener_respuesta(pregunta):
 def calcular_costo(datos:dict, precio_entrada: float, precio_salida: float):
     try:
         usage = datos["usageMetadata"] # Sección JSON de la respuesta de la API
-        prompt_token = int(usage.get("promptTokenCount") or 0) # Número de tokens utilizados en la entrada
-        candidates_token = int(usage.get("candidatesTokenCount") or 0) # Número de tokens utilizados en la salida
-        thought_token = int(usage.get("thoughtsTokenCount") or 0) # Número de tokens utilizados en el razonamiento
+        prompt_token = int(usage.get("promptTokenCount", 0)) # Número de tokens utilizados en la entrada
+        candidates_token = int(usage.get("candidatesTokenCount", 0)) # Número de tokens utilizados en la salida
+        thought_token = int(usage.get("thoughtsTokenCount", 0)) # Número de tokens utilizados en el razonamiento
         costo_entrada = prompt_token * precio_entrada
         costo_salida = (candidates_token + thought_token) * precio_salida
         return costo_entrada + costo_salida
@@ -84,7 +84,8 @@ def calcular_costo(datos:dict, precio_entrada: float, precio_salida: float):
         raise ValueError("Los datos de tokens tienen un formato inválido.") from error
 
 #----------------------------------------------------------------------------------------------------
-#Main
+# Main
+# Última modificación: 2026-10-19
 #----------------------------------------------------------------------------------------------------
 try:
     respuesta, costo = obtener_respuesta(input("Ingrese su pregunta: "))
