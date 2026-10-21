@@ -1,6 +1,7 @@
 import os
 import requests
 from dotenv import load_dotenv
+import time # Para contabulizar el tiempo
 
 #----------------------------------------------------------------------------------------------------
 # Función que permite cargar secretos y configuraciones desde .env
@@ -13,7 +14,7 @@ load_dotenv()
 #----------------------------------------------------------------------------------------------------
 GEMINI_URL_BASE = f"https://generativelanguage.googleapis.com/v1beta/models/"
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-GEMINI_MODEL = "gemini-flash-latest"
+GEMINI_MODEL = "gemini-3.1-flash-lite" #"gemini-flash-latest"  "gemini-3.6-flash"
 GEMINI_PRECIO_ENTRADA = 0.00000075
 GEMINI_PRECIO_SALIDA = 0.00000375
 VALOR_DOLAR_CHILE = 970
@@ -57,12 +58,16 @@ def extraer_texto(datos):
 
 #----------------------------------------------------------------------------------------------------
 # Obtener respuesta: Permite obtener la respuesta de la API 
-# Última modificación: 2026-10-19
+# Última modificación: 2026-10-20
+# 2026-10-20 : Se agregó la medición de latencia para evaluar el tiempo de respuesta de la API.
 #----------------------------------------------------------------------------------------------------
 def obtener_respuesta(pregunta):
     url, body = armar_peticion(pregunta)
+    inicio_rqst = time.perf_counter() # Inicia el contador de tiempo
     datos = enviar_peticion(url, body)
-    return extraer_texto(datos)
+    fin_rqst = time.perf_counter() # Finaliza el contador de tiempo
+    latencia = fin_rqst - inicio_rqst
+    return extraer_texto(datos), latencia
 
 #----------------------------------------------------------------------------------------------------
 # Calcular costo (tokens): Permite obtener el costo de la respuesta en función de los tokens utilizados en la entrada y salida.
@@ -85,11 +90,13 @@ def calcular_costo(datos:dict, precio_entrada: float, precio_salida: float):
 
 #----------------------------------------------------------------------------------------------------
 # Main
-# Última modificación: 2026-10-19
+# Última modificación: 2026-10-20
+# 2026-10-20 : Se agregó la medición de latencia para evaluar el tiempo de respuesta de la API.
 #----------------------------------------------------------------------------------------------------
 try:
-    respuesta, costo = obtener_respuesta(input("Ingrese su pregunta: "))
+    (respuesta, costo), latencia = obtener_respuesta(input("Ingrese su pregunta: "))
     print(f"Respuesta: {respuesta}")
     print(f"Costo estimado de la respuesta: ${costo:.6f} USD / ${costo * VALOR_DOLAR_CHILE:.2f} CLP")
+    print(f"Latencia de la solicitud: {latencia:.4f} segundos")
 except (ValueError, RuntimeError) as e:
     print(f"No se pudo completar la operación: {e}")
