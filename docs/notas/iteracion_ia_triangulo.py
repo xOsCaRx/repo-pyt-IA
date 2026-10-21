@@ -16,7 +16,6 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 GEMINI_MODEL = "gemini-flash-latest"
 GEMINI_PRECIO_ENTRADA = 0
 GEMINI_PRECIO_SALIDA = 0
-VALOR_DOLAR_CHILE = 970
 #----------------------------------------------------------------------------------------------------
 # Crear solicitud
 #----------------------------------------------------------------------------------------------------
@@ -100,7 +99,7 @@ try:
     modelos.append(["gemini-3.6-flash", 0.00000075, 0.0000015])
     modelos.append(["gemini-3.8-flash", 0.00000075, 0.00000375])
 
-    for i, modelo in enumerate(modelos):
+    for i, modelo in enumerate(modelos): #Itera por los modelos definidos en la lista
         print(f"{i+1}. MODELO: {modelo[0]}")
         GEMINI_MODEL = modelo[0]  # Selecciona el modelo
         GEMINI_PRECIO_ENTRADA = modelo[1]  # Selecciona el precio de entrada

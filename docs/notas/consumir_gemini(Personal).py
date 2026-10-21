@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 #Contruiyo el cuerpo de la solicitud
-def build_request_and_call(question):
+def build_request(question):
     api_key = os.getenv("GEMINI_API_KEY")
     model = "gemini-flash-latest"
     body = { "contents": [{ "parts": [{ "text": question }] }] }
@@ -15,7 +15,7 @@ def build_request_and_call(question):
 
 #realizo la llamada a la API
 def call_api(question):
-    request = build_request_and_call(question)
+    request = build_request(question)
     session = requests.Session()
     return session.send(request.prepare()) 
 
