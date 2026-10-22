@@ -2,6 +2,8 @@ import os
 import requests
 from dotenv import load_dotenv
 import time # Para contabulizar el tiempo
+import json
+import re
 
 #----------------------------------------------------------------------------------------------------
 # Función que permite cargar secretos y configuraciones desde .env
@@ -9,22 +11,43 @@ import time # Para contabulizar el tiempo
 load_dotenv()
 
 #----------------------------------------------------------------------------------------------------
-# Constantes
+#region Constantes
 # Fecha de actualización: 2026-10-19
 #----------------------------------------------------------------------------------------------------
+
 GEMINI_URL_BASE = f"https://generativelanguage.googleapis.com/v1beta/models/"
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-GEMINI_MODEL = "gemini-3.1-flash-lite" #"gemini-flash-latest"  "gemini-3.6-flash"
-GEMINI_PRECIO_ENTRADA = 0.00000075
-GEMINI_PRECIO_SALIDA = 0.00000375
-VALOR_DOLAR_CHILE = 970
+SYSTEM_INSTRUCTION = "Actúa como un asesor experto en gestión de proyectos de software. Responde de manera ejecutiva y profesional sin inventar datos y solo basándote en la información entregada"
+#endregion
 #----------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------
+#region Variables globales
+# Fecha de actualización: 2026-10-19
+#----------------------------------------------------------------------------------------------------
+gemini_model = "gemini-flash-latest"
+gemini_precio_entrada = 0
+gemini_precio_salida = 0
+valor_dolar_chile = 970
+#endregion
+#----------------------------------------------------------------------------------------------------
+
+
 # Crear solicitud
+# 2026-10-21: Se agrega system instruction y response_schema al body del request 
+# 2026-10-21: Se agrega un response_schema para recibir mi respuesta formateada y manejable
 #----------------------------------------------------------------------------------------------------
-def armar_peticion(pregunta):
+def armar_peticion(pregunta, system_instruction, response_schema=None):
     if not pregunta: raise ValueError("La pregunta no puede estar vacía.")
-    url = f"{GEMINI_URL_BASE}{GEMINI_MODEL}:generateContent?key={GEMINI_API_KEY}"
-    body = { "contents": [{ "parts": [{ "text": pregunta }] }] }
+    url = f"{GEMINI_URL_BASE}{gemini_model}:generateContent?key={GEMINI_API_KEY}"
+    body = { 
+        "systemInstruction": { "parts": [{ "text": system_instruction }] }, 
+        "contents": [{ "parts": [{ "text": pregunta }] }]
+        }
+    if response_schema is not None: # Si efectivamente recibo un schema entonces lo agrego
+        body["generationConfig"] = {
+            "responseMimeType" : "application/json",
+            "responseSchema"   : response_schema
+        }
     return url, body
 
 #----------------------------------------------------------------------------------------------------
@@ -46,28 +69,178 @@ def enviar_peticion(url, body):
         raise RuntimeError("La respuesta del servicio no llegó en el formato esperado.")
 
 #----------------------------------------------------------------------------------------------------
-# Extraer respuesta: Permite extraer el texto de la respuesta de la API y calcular el costo de la misma.
+# Extraer texto: Permite extraer el texto de la respuesta de la API y calcular el costo de la misma.
 # Última modificación: 2026-10-19
 #----------------------------------------------------------------------------------------------------
 def extraer_texto(datos):
     try:
-        costo = calcular_costo(datos, precio_entrada=GEMINI_PRECIO_ENTRADA, precio_salida=GEMINI_PRECIO_SALIDA)
+        costo = calcular_costo(datos, precio_entrada=gemini_precio_entrada, precio_salida=gemini_precio_salida)
         return datos["candidates"][0]["content"]["parts"][0]["text"], costo
     except (KeyError, IndexError, TypeError):
         raise RuntimeError("Error al extraer el texto de la respuesta.")    
 
 #----------------------------------------------------------------------------------------------------
+# Crear Schema: Crea el esquema del response
+# Fecha de creación: 2026-10-21
+#----------------------------------------------------------------------------------------------------
+def crear_schema():
+    response_schema = {
+        "type": "OBJECT",
+        "properties": {
+
+            "estado_analisis": {
+                "type": "STRING",
+                "enum": ["completo", "parcial", "datos_insuficientes"],
+                "description": "Determina si hay información suficiente para emitir recomendaciones."
+            },
+
+            "resumen_ejecutivo": {
+                "type": "STRING",
+                "description": "Diagnóstico ejecutivo del estado general del proyecto."
+            },
+
+            "hechos": {
+                "type": "ARRAY",
+                "items": {
+                    "type": "OBJECT",
+                    "properties": {
+                        "descripcion": {"type": "STRING"},
+                        "evidencia": {"type": "STRING"}
+                    }
+                    #,
+                    #"required": ["descripcion", "evidencia"]
+                },
+                "description": "Hechos verificables extraídos de los datos proporcionados."
+            },
+
+            "inferencias": {
+                "type": "ARRAY",
+                "items": {
+                    "type": "OBJECT",
+                    "properties": {
+                        "descripcion": {"type": "STRING"},
+                        "fundamento": {"type": "STRING"}
+                    }
+                    #,
+                    #"required": ["descripcion", "fundamento"]
+                }
+            },
+
+            "riesgos": {
+                "type": "ARRAY",
+                "items": {
+                    "type": "OBJECT",
+                    "properties": {
+                        "id": {"type": "STRING"},
+                        "descripcion": {"type": "STRING"},
+                        "prioridad": {
+                            "type": "STRING",
+                            "enum": ["alta", "media", "baja"]
+                        },
+                        "impacto": {"type": "STRING"},
+                        "evidencia": {"type": "STRING"}
+                    }
+                    #,
+                    #"required": [
+                    #    "id", "descripcion", "prioridad",
+                    #    "impacto", "evidencia"
+                    #]
+                }
+            },
+
+            "recomendaciones": {
+                "type": "ARRAY",
+                "items": {
+                    "type": "OBJECT",
+                    "properties": {
+                        "prioridad": {
+                            "type": "INTEGER",
+                            "minimum": 1,
+                            "maximum": 3
+                        },
+                        "accion": {"type": "STRING"},
+                        "justificacion": {"type": "STRING"},
+                        "impacto_esperado": {"type": "STRING"},
+                        "riesgo_asociado": {"type": "STRING"}
+                    }
+                    #,
+                    #"required": [
+                    #    "prioridad", "accion", "justificacion",
+                    #    "impacto_esperado", "riesgo_asociado"
+                    #]
+                }
+            },
+
+            "datos_faltantes": {
+                "type": "ARRAY",
+                "items": {"type": "STRING"}
+            },
+
+            "advertencias": {
+                "type": "ARRAY",
+                "items": {"type": "STRING"}
+            }
+        },
+
+        "required": [
+            "estado_analisis",
+            "resumen_ejecutivo",
+            "hechos",
+            "inferencias",
+            "riesgos",
+            "recomendaciones",
+            "datos_faltantes",
+            "advertencias"
+        ]
+    }
+    return response_schema
+
+#----------------------------------------------------------------------------------------------------
 # Obtener respuesta: Permite obtener la respuesta de la API 
-# Última modificación: 2026-10-20
+# 2026-10-21 : Se agrega system instruction al body del request 
 # 2026-10-20 : Se agregó la medición de latencia para evaluar el tiempo de respuesta de la API.
 #----------------------------------------------------------------------------------------------------
 def obtener_respuesta(pregunta):
-    url, body = armar_peticion(pregunta)
+#    response_schema = {
+#        "type" : "OBJECT",
+#        "properties" : {
+#            "category" : {"type" : "STRING"},
+#            "level"    : {"type" : "NUMBER"}
+#        },
+#        "required"     : ["category", "level"] 
+#    }
+
+    response_schema = crear_schema()
+    url, body = armar_peticion(pregunta, SYSTEM_INSTRUCTION, response_schema)
     inicio_rqst = time.perf_counter() # Inicia el contador de tiempo
     datos = enviar_peticion(url, body)
     fin_rqst = time.perf_counter() # Finaliza el contador de tiempo
     latencia = fin_rqst - inicio_rqst
-    return extraer_texto(datos), latencia
+    respuesta_costo = extraer_texto(datos)
+    claves_requeridas= ["estado_analisis","resumen_ejecutivo","hechos","inferencias",
+                        "riesgos","recomendaciones","datos_faltantes","advertencias"
+                        ]
+    respuesta_formateada = (parsear_respuesta_json(respuesta_costo[0], claves_requeridas),) + respuesta_costo[1:]
+    return respuesta_formateada, latencia
+
+#----------------------------------------------------------------------------------------------------
+# parsear_respuesta_json: Permite parsear la respuesta que recibo de la API
+# Fecha creación: 2026-10-21
+#----------------------------------------------------------------------------------------------------
+def parsear_respuesta_json(response, claves_requeridas=None):
+    clean_response = response.strip()
+    clean_response = re.sub(r"^```(?:json)?\s*", "", clean_response) 
+    clean_response = re.sub(r"\s*```$", "", clean_response)
+    try:
+        datos = json.loads(clean_response)
+    except json.JSONDecodeError:
+        raise ValueError("La respuesta del modelo JSON no es válida")
+    if claves_requeridas:
+        faltantes = [clave for clave in claves_requeridas if clave not in datos]
+        print(faltantes)
+        if faltantes:
+            raise ValueError("La respuesta no tiene la estructura esperada")
+    return datos
 
 #----------------------------------------------------------------------------------------------------
 # Calcular costo (tokens): Permite obtener el costo de la respuesta en función de los tokens utilizados en la entrada y salida.
@@ -89,14 +262,81 @@ def calcular_costo(datos:dict, precio_entrada: float, precio_salida: float):
         raise ValueError("Los datos de tokens tienen un formato inválido.") from error
 
 #----------------------------------------------------------------------------------------------------
-# Main
-# Última modificación: 2026-10-20
+# Muestra un menú para seleccionar el modelo
+# Fecha creación : 2026-10-21
+#----------------------------------------------------------------------------------------------------
+    
+def mostrar_menu():
+    os.system("clear")
+    print("\n" + "=" * 30)
+    print("MODELOS DISPONIBLES")
+    print("=" * 30)
+    print("  1. gemini-3.5-flash-lite")
+    print("  2. gemini-3.6-flash")
+    print("  3. gemini-3.8-flash")
+    print("  4. Salir")
+    print("=" * 30)
+
+#----------------------------------------------------------------------------------------------------
+# Asigno las variables de acuerdo al modelo seleccionado
+# Fecha creación : 2026-10-21
+#----------------------------------------------------------------------------------------------------
+
+def seleccionar_modelo():
+    global gemini_model, gemini_precio_entrada, gemini_precio_salida # Le indico que use las variables globales y no locales
+    while True:
+        mostrar_menu()
+        opcion = input("Selecciona una opción: ").strip()
+
+        match opcion:
+            case "1":
+                gemini_model = "gemini-3.5-flash-lite"
+                gemini_precio_entrada = 0.0000003
+                gemini_precio_salida = 0.0000025
+                capturar_pregunta()
+                break
+            case "2":
+                gemini_model = "gemini-3.6-flash"
+                gemini_precio_entrada = 0.00000075
+                gemini_precio_salida = 0.0000015
+                capturar_pregunta()
+                break
+            case "3":
+                gemini_model = "gemini-3.8-flash"
+                gemini_precio_entrada = 0.00000075
+                gemini_precio_salida = 0.00000375
+                capturar_pregunta()
+                break
+            case "4":
+                print("\n¡Saludos!")
+                break
+            case _:
+                print("\nOpción inválida. Intenta nuevamente.")
+                break;
+
+#----------------------------------------------------------------------------------------------------
+# Permite capturar la pregunta del usuario que haremos al modelo
+# Fecha creación : 2026-10-21
+#----------------------------------------------------------------------------------------------------
+
+def capturar_pregunta():
+    try:        
+        (respuesta, costo), latencia = obtener_respuesta(input("Ingrese su pregunta: "))
+        print("="*70)
+        print(f"Respuesta: {respuesta}")
+        print("="*70)
+        print(f"Modelo: {gemini_model}")
+        print(f"Costo estimado de la respuesta: ${costo:.6f} USD / ${costo * valor_dolar_chile:.2f} CLP")
+        print(f"Latencia de la solicitud: {latencia:.4f} segundos")
+        print("="*70)
+    except (ValueError, RuntimeError) as e:
+        print(f"No se pudo completar la operación: {e}")
+
+#----------------------------------------------------------------------------------------------------
+# Main: Inicio de la aplicación
+# 2026-10-21 : Se crea nueva función que muestra menú y según ello seleccionar modelo y continuar.
 # 2026-10-20 : Se agregó la medición de latencia para evaluar el tiempo de respuesta de la API.
 #----------------------------------------------------------------------------------------------------
-try:
-    (respuesta, costo), latencia = obtener_respuesta(input("Ingrese su pregunta: "))
-    print(f"Respuesta: {respuesta}")
-    print(f"Costo estimado de la respuesta: ${costo:.6f} USD / ${costo * VALOR_DOLAR_CHILE:.2f} CLP")
-    print(f"Latencia de la solicitud: {latencia:.4f} segundos")
-except (ValueError, RuntimeError) as e:
-    print(f"No se pudo completar la operación: {e}")
+
+seleccionar_modelo()
+
