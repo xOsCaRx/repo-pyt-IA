@@ -1,0 +1,14 @@
+{
+  "RIESGOS": {
+    "exitos": 3,
+    "intentos": 3
+  },
+  "DECISIONES": {
+    "exitos": 3,
+    "intentos": 3
+  },
+  "RECUPERACION": {
+    "exitos": 3,
+    "intentos": 3
+  }
+}
