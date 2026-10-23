@@ -14,12 +14,12 @@ load_dotenv()
 #region Constantes
 # Fecha de actualización: 2026-10-19
 #----------------------------------------------------------------------------------------------------
-
 GEMINI_URL_BASE = f"https://generativelanguage.googleapis.com/v1beta/models/"
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 SYSTEM_INSTRUCTION = "Actúa como un asesor experto en gestión de proyectos de software. Responde de manera ejecutiva y profesional sin inventar datos y solo basándote en la información entregada"
 #endregion
 #----------------------------------------------------------------------------------------------------
+
 #----------------------------------------------------------------------------------------------------
 #region Variables globales
 # Fecha de actualización: 2026-10-19
@@ -31,14 +31,14 @@ valor_dolar_chile = 970
 #endregion
 #----------------------------------------------------------------------------------------------------
 
-
 # Crear solicitud
+# 2026-10-22: Se incorpora como parámetro gemini_model_seleccionado para poder utilizarlo en consistencia.py
 # 2026-10-21: Se agrega system instruction y response_schema al body del request 
-# 2026-10-21: Se agrega un response_schema para recibir mi respuesta formateada y manejable
+# 2026-10-20: Se agrega un response_schema para recibir mi respuesta formateada y manejable
 #----------------------------------------------------------------------------------------------------
-def armar_peticion(pregunta, system_instruction, response_schema=None):
+def armar_peticion(gemini_model_seleccionado, pregunta, system_instruction, response_schema=None):
     if not pregunta: raise ValueError("La pregunta no puede estar vacía.")
-    url = f"{GEMINI_URL_BASE}{gemini_model}:generateContent?key={GEMINI_API_KEY}"
+    url = f"{GEMINI_URL_BASE}{gemini_model_seleccionado}:generateContent?key={GEMINI_API_KEY}"
     body = { 
         "systemInstruction": { "parts": [{ "text": system_instruction }] }, 
         "contents": [{ "parts": [{ "text": pregunta }] }]
@@ -87,18 +87,15 @@ def crear_schema():
     response_schema = {
         "type": "OBJECT",
         "properties": {
-
             "estado_analisis": {
                 "type": "STRING",
                 "enum": ["completo", "parcial", "datos_insuficientes"],
                 "description": "Determina si hay información suficiente para emitir recomendaciones."
             },
-
             "resumen_ejecutivo": {
                 "type": "STRING",
                 "description": "Diagnóstico ejecutivo del estado general del proyecto."
             },
-
             "hechos": {
                 "type": "ARRAY",
                 "items": {
@@ -112,7 +109,6 @@ def crear_schema():
                 },
                 "description": "Hechos verificables extraídos de los datos proporcionados."
             },
-
             "inferencias": {
                 "type": "ARRAY",
                 "items": {
@@ -125,7 +121,6 @@ def crear_schema():
                     #"required": ["descripcion", "fundamento"]
                 }
             },
-
             "riesgos": {
                 "type": "ARRAY",
                 "items": {
@@ -147,7 +142,6 @@ def crear_schema():
                     #]
                 }
             },
-
             "recomendaciones": {
                 "type": "ARRAY",
                 "items": {
@@ -170,18 +164,15 @@ def crear_schema():
                     #]
                 }
             },
-
             "datos_faltantes": {
                 "type": "ARRAY",
                 "items": {"type": "STRING"}
             },
-
             "advertencias": {
                 "type": "ARRAY",
                 "items": {"type": "STRING"}
             }
         },
-
         "required": [
             "estado_analisis",
             "resumen_ejecutivo",
@@ -201,17 +192,8 @@ def crear_schema():
 # 2026-10-20 : Se agregó la medición de latencia para evaluar el tiempo de respuesta de la API.
 #----------------------------------------------------------------------------------------------------
 def obtener_respuesta(pregunta):
-#    response_schema = {
-#        "type" : "OBJECT",
-#        "properties" : {
-#            "category" : {"type" : "STRING"},
-#            "level"    : {"type" : "NUMBER"}
-#        },
-#        "required"     : ["category", "level"] 
-#    }
-
     response_schema = crear_schema()
-    url, body = armar_peticion(pregunta, SYSTEM_INSTRUCTION, response_schema)
+    url, body = armar_peticion(gemini_model, pregunta, SYSTEM_INSTRUCTION, response_schema)
     inicio_rqst = time.perf_counter() # Inicia el contador de tiempo
     datos = enviar_peticion(url, body)
     fin_rqst = time.perf_counter() # Finaliza el contador de tiempo
@@ -237,7 +219,6 @@ def parsear_respuesta_json(response, claves_requeridas=None):
         raise ValueError("La respuesta del modelo JSON no es válida")
     if claves_requeridas:
         faltantes = [clave for clave in claves_requeridas if clave not in datos]
-        print(faltantes)
         if faltantes:
             raise ValueError("La respuesta no tiene la estructura esperada")
     return datos
@@ -264,8 +245,7 @@ def calcular_costo(datos:dict, precio_entrada: float, precio_salida: float):
 #----------------------------------------------------------------------------------------------------
 # Muestra un menú para seleccionar el modelo
 # Fecha creación : 2026-10-21
-#----------------------------------------------------------------------------------------------------
-    
+#----------------------------------------------------------------------------------------------------    
 def mostrar_menu():
     os.system("clear")
     print("\n" + "=" * 30)
@@ -281,7 +261,6 @@ def mostrar_menu():
 # Asigno las variables de acuerdo al modelo seleccionado
 # Fecha creación : 2026-10-21
 #----------------------------------------------------------------------------------------------------
-
 def seleccionar_modelo():
     global gemini_model, gemini_precio_entrada, gemini_precio_salida # Le indico que use las variables globales y no locales
     while True:
@@ -318,7 +297,6 @@ def seleccionar_modelo():
 # Permite capturar la pregunta del usuario que haremos al modelo
 # Fecha creación : 2026-10-21
 #----------------------------------------------------------------------------------------------------
-
 def capturar_pregunta():
     try:        
         (respuesta, costo), latencia = obtener_respuesta(input("Ingrese su pregunta: "))
@@ -334,9 +312,10 @@ def capturar_pregunta():
 
 #----------------------------------------------------------------------------------------------------
 # Main: Inicio de la aplicación
+# 2026-10-22 : Se agrega if que permite verificar que estamos ejecutando el script desde import o no
 # 2026-10-21 : Se crea nueva función que muestra menú y según ello seleccionar modelo y continuar.
 # 2026-10-20 : Se agregó la medición de latencia para evaluar el tiempo de respuesta de la API.
 #----------------------------------------------------------------------------------------------------
-
-seleccionar_modelo()
+if __name__ == "__main__" : #Esto permite que solo se ejecute cuando lo llamo desde este file de script y no desde un import
+    seleccionar_modelo()
 
