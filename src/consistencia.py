@@ -35,5 +35,3 @@ try:
     print("="*30)
 except(ValueError, RuntimeError) as e:
     print("No se pudo completar la operación: ", e)
-
-        
