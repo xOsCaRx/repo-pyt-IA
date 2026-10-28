@@ -55,7 +55,8 @@ def armar_peticion(gemini_model_seleccionado, pregunta, system_instruction, resp
 #----------------------------------------------------------------------------------------------------
 def enviar_peticion(url, body):
     try:
-        response = requests.post(url, json=body)
+        response = requests.post(url, json=body, timeout=30)
+        #raise TimeoutError()
     except requests.exceptions.ConnectionError:
         raise RuntimeError("No se pudo conectar con el servicio. Itente nuevamente más tarde.")
     except requests.exceptions.Timeout:

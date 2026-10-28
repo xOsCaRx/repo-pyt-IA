@@ -1,15 +1,16 @@
 # Script que permite reintentar la petición a una API 
 # Fecha Creación: 2026-10-23
-
+import random
 import time
 from typing import Callable, Any 
 
-from src.consumir_gemini import armar_peticion, enviar_peticion, extraer_texto, parsear_respuesta_json
+from src.consumir_gemini import armar_peticion, enviar_peticion, extraer_texto #, parsear_respuesta_json
 
 def con_reintento(
     funcion: Callable[[], Any],
     intentos: int = 3,
-    espera_segundos: int = 2
+    espera_base: int = 2,
+    espera_maxima: float = 30
 ) -> Any:
     for intento in range(intentos):
         try:
@@ -17,5 +18,48 @@ def con_reintento(
         except TimeoutError:
             if intento == intentos - 1:
                 raise
-            print(f"Intento {intento+1} de {intentos} falló por límite de uso/servidor. Reintentando...")
-            time.sleep(espera_segundos)
+            espera = min(espera_base * (2 ** (intento)), espera_maxima)
+            espera_con_jitter = espera + random.uniform(0, espera * 0.1)
+            print(f"Intento {intento} de {intentos} falló. Reintentando en {espera_con_jitter:.1f}s...")
+            time.sleep(espera_con_jitter)
+
+COSTO_POR_1000_TOKENS = 0.002  # referencial, ajusta según el modelo que uses
+costo_total_sesion = 0.0
+ 
+ 
+def registrar_costo(respuesta: dict) -> float:
+	global costo_total_sesion
+	uso = respuesta.get("usageMetadata", {})
+	total_tokens = uso.get("totalTokenCount", 0)
+	costo_estimado = (total_tokens / 1000) * COSTO_POR_1000_TOKENS
+	costo_total_sesion += costo_estimado
+	print(f"Operación: {total_tokens} tokens, costo estimado: ${costo_estimado:.5f} (acumulado: ${costo_total_sesion:.5f})")
+	return costo_estimado
+ 
+ 
+def consultar_modelo(pregunta: str, system_instruction: str = "") -> tuple[str, float]:
+    url, body = armar_peticion("gemini-3.5-flash-lite",pregunta, system_instruction)
+    try:
+        respuesta = con_reintento(lambda: enviar_peticion(url, body))
+    except TimeoutError:
+        raise RuntimeError("El servicio no respondió tras varios intentos. Intenta más tarde.")
+    registrar_costo(respuesta)
+    return extraer_texto(respuesta)
+ 
+ 
+if __name__ == "__main__":
+    resultado = consultar_modelo("¿Cuál es la capital de Chile?")
+    print(resultado)
+    
+    for i in range(10):
+        try:
+            respuesta = consultar_modelo(f"Pregunta de prueba número {i}")  
+            print(f"Respuesta {i}: {respuesta[:40]}...")
+        except RuntimeError as error:
+            print(f"Respuesta {i} falló definitivamente: {error}")
+
+#if __name__ == "__main__":
+#    # gemini-3.8-flash gemini-3.5-flash-lite
+#    url, cuerpo = armar_peticion("gemini-3.5-flash-lite", "Hola", "") 
+#    respuesta = con_reintento(lambda: enviar_peticion(url, cuerpo))
+#    print(respuesta)
