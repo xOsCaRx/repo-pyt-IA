@@ -1,3 +1,5 @@
+# Script para realizar pruebas unitarias
+# Fecha creación: 27-10-2026
 from unittest.mock import patch, Mock
 import pytest
 import cliente
