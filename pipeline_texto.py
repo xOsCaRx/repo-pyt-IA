@@ -19,4 +19,3 @@ pct_proc = len(comunes) / len(set(tokens_ref))
 
 print(f"[Caso 1] Coincidencia texto crudo: {pct_crudo:.1%}")
 print(f"[Caso 1] Coincidencia texto procesado: {pct_proc:.1%}")
-
