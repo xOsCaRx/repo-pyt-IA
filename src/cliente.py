@@ -4,7 +4,7 @@ import random
 import time
 from typing import Callable, Any 
 
-from src.consumir_gemini import armar_peticion, enviar_peticion, extraer_texto #, parsear_respuesta_json
+from consumir_gemini import armar_peticion, enviar_peticion, extraer_texto #, parsear_respuesta_json
 
 def con_reintento(
     funcion: Callable[[], Any],
