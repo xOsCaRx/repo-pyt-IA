@@ -1,0 +1,29 @@
+PROYECTO ATLAS — FICHA GENERAL
+El Proyecto Atlas tiene como objetivo desarrollar una aplicación inteligente de gestión de proyectos que permita consultar avances, identificar riesgos y apoyar decisiones con información documentada. El proyecto comenzó el 2 de noviembre de 2026 y la fecha objetivo de su primera versión es el 18 de diciembre de 2026. La jefa del proyecto es Camila Torres. Todos los datos de este archivo son ficticios y se usan solo para el ejercicio académico.
+---
+PROYECTO ATLAS — ESTADO DE AVANCE
+Al 18 de noviembre de 2026, el avance planificado del Proyecto Atlas es 50 % y el avance real es 42 %. La diferencia es de 8 puntos porcentuales por debajo del plan. El proyecto se encuentra en estado amarillo, lo que significa que requiere seguimiento, pero todavía es posible recuperar el cronograma.
+---
+PROYECTO ATLAS — ACTIVIDADES COMPLETADAS
+Las actividades completadas son: definición del alcance, levantamiento de requisitos, diseño inicial de arquitectura y configuración del repositorio Git. Las cuatro actividades fueron revisadas por el equipo del proyecto y no tienen bloqueos abiertos.
+---
+PROYECTO ATLAS — ACTIVIDADES PENDIENTES
+Las tareas pendientes son: integrar el módulo de consulta RAG, desarrollar el panel de indicadores, implementar las pruebas de calidad de respuestas y realizar pruebas con usuarios. La integración RAG está programada para el 25 de noviembre de 2026. El panel de indicadores está programado para el 2 de diciembre de 2026.
+---
+PROYECTO ATLAS — RIESGO R01
+El riesgo R01 es un posible retraso en la integración con la fuente de datos de tareas. Su probabilidad es alta y su impacto es alto. La responsable es Camila Torres. La medida de mitigación consiste en comenzar con archivos CSV de ejemplo y posponer la conexión automática a sistemas externos hasta validar el flujo básico.
+---
+PROYECTO ATLAS — RIESGO R02
+El riesgo R02 es que el agente de IA produzca respuestas sin evidencia suficiente. Su probabilidad es media y su impacto es alto. El responsable es Diego Fuentes. La mitigación consiste en exigir citas, evaluar respuestas con preguntas conocidas y hacer que el agente declare cuando no cuenta con contexto suficiente.
+---
+PROYECTO ATLAS — BLOQUEOS
+El bloqueo B01 afecta la integración del módulo RAG porque todavía falta normalizar algunas columnas del archivo de tareas. La responsable de resolverlo es Valentina Pérez. Se espera tener los datos corregidos el 23 de noviembre de 2026. El bloqueo B02 afecta las pruebas con usuarios porque aún no se confirma la disponibilidad de tres participantes.
+---
+PROYECTO ATLAS — PRESUPUESTO
+El presupuesto total aprobado para el Proyecto Atlas es de 12.000.000 CLP. El gasto ejecutado acumulado al 18 de noviembre de 2026 es de 4.800.000 CLP. El saldo presupuestario disponible es de 7.200.000 CLP. Toda solicitud de gasto adicional debe ser autorizada por la responsable del presupuesto antes de registrarse como ejecutada.
+---
+PROYECTO ATLAS — RECURSOS
+El equipo del Proyecto Atlas tiene cuatro integrantes: Camila Torres, jefa de proyecto; Diego Fuentes, desarrollador de IA; Valentina Pérez, analista de datos; y Martín Rojas, desarrollador de interfaz. Diego dedica 30 horas semanales al módulo RAG. Valentina dedica 20 horas semanales a la preparación de datos. Martín dedica 25 horas semanales al panel de indicadores.
+---
+PROYECTO ATLAS — DECISIONES Y SUPERVISIÓN
+La aplicación puede consultar información, calcular indicadores y proponer recomendaciones sin aprobación previa. Los cambios de tareas deben quedar registrados y ser reversibles. Ningún agente puede autorizar o ejecutar gastos por su cuenta: las acciones con impacto presupuestario requieren aprobación humana explícita. Cada interacción del agente debe producir una traza para revisión posterior.
