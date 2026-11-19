@@ -1,3 +1,4 @@
+# 2026-11-18: revisión de código para entrega de core.
 # 2026-11-04: Actividad core, enrutamiento con fallback adaptado a proyecto personal. 
 # 2026-11-04: Fecha creación
 
@@ -95,6 +96,7 @@ def procesar_consulta_segura(cadena, mensaje):
 
 
 if __name__ == "__main__":
+    print("Iniciando...\n ")
     consulta = (
         "El proyecto debía llevar un 80 % de avance y lleva 60 %. "
         "Quedan cuatro semanas. ¿Qué riesgos debemos priorizar?"

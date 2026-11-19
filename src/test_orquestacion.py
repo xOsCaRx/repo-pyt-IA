@@ -1,6 +1,6 @@
 from unittest.mock import MagicMock
 from langchain_core.runnables import RunnableLambda
-
+# Tomo el file de enrutamiento_core para los test
 from enrutamiento_core import (
     construir_cadena_con_enrutamiento,
     construir_cadena_segura,
