@@ -1,0 +1,2 @@
+{"herramienta": "registrar_gasto_proyecto", "argumentos": {"codigo_proyecto": "PYT001", "concepto": "capacitación", "monto": 100000.0}, "aprobado": false, "fecha_hora": "2026-11-19T02:17:28.878687+00:00"}
+{"herramienta": "registrar_gasto_proyecto", "argumentos": {"codigo_proyecto": "PYT001", "concepto": "capacitación", "monto": 100000.0}, "aprobado": true, "fecha_hora": "2026-11-19T02:18:10.777662+00:00"}
